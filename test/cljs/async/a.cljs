@@ -7,7 +7,8 @@
   :start (go
            (js/console.log "Starting state A")
            (<! (timeout 2000))
-           (js/console.log "State A started."))
+           (js/console.log "State A started.")
+           0)
   :stop (do
           (js/console.log "Stopping state A")
           (js/console.log "State A stopped.")))

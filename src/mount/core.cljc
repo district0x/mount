@@ -6,7 +6,7 @@
                     [clojure.set :refer [intersection]]
                     [clojure.string :as s]
                     [clojure.core.async :refer [<! go]]
-                    [clojure.core.async.impl.protocols :as protos])
+                    [clojure.core.async.impl.protocols :as async-protos])
      :cljs (:require [mount.tools.macro]
                      [clojure.set :refer [intersection]]
                      [clojure.core.async :refer [<! chan go]]
