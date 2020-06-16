@@ -4,10 +4,14 @@
                     [mount.tools.macrovich :refer [deftime]]
                     [mount.tools.logger :refer [log]]
                     [clojure.set :refer [intersection]]
-                    [clojure.string :as s])
+                    [clojure.string :as s]
+                    [clojure.core.async :refer [<! go]]
+                    [clojure.core.async.impl.protocols :as protos])
      :cljs (:require [mount.tools.macro]
                      [clojure.set :refer [intersection]]
-                     [mount.tools.logger :refer [log]]))
+                     [clojure.core.async :refer [<! chan go]]
+                     [mount.tools.logger :refer [log]]
+                     [cljs.core.async.impl.protocols :as async-protos]))
   #?(:cljs (:require-macros [mount.core]
                             [mount.tools.macro :refer [on-error throw-runtime]]
                             [mount.tools.macrovich :refer [deftime]])))
@@ -71,17 +75,24 @@
   (swap! meta-state assoc-in path v))
 
 (defn- record! [state-name f done]
-  (let [state (f)]
-    (swap! done conj state-name)
-    state))
+  ;; NOTE: f here is the start/stop state functions
+  ;; which can return a value or a promise-chan
+  (go
+    (let [state (let [res (f)]
+                  (if (satisfies? async-protos/ReadPort res)
+                    (<! res) ;; block if it is a chan
+                    res))]
+      (swap! done conj state-name)
+      state)))
 
 (defn- up [state {:keys [start stop status] :as current} done]
-  (when-not (:started status)
-    (let [s (on-error (str "could not start [" state "] due to")
-                      (record! state start done))]
-      (alter-state! current s)
-      (swap! running assoc state {:stop stop})
-      (update-meta! [state :status] #{:started}))))
+  (go
+    (when-not (:started status) ;; TODO: we need a way of handling errors in state start
+      (let [s (on-error (str "could not start [" state "] due to")
+                        (<! (record! state start done)))]
+        (alter-state! current s)
+        (swap! running assoc state {:stop stop})
+        (update-meta! [state :status] #{:started})))))
 
 (defn- down
   "brings a state down by
@@ -91,17 +102,18 @@
     * dissoc'ing it from the running states
     * marking it as :stopped"
   [state {:keys [stop status] :as current} done]
-  (when (some status #{:started})
-    (if stop
-      (if-let [cause (-> (on-error (str "could not stop [" state "] due to")
-                                   (record! state stop done)
-                                   :fail? false)
-                         :f-failed)]
-        (log cause :error)                                  ;; this would mostly be useful in REPL / browser console
-        (alter-state! current (->NotStartedState state)))
-        (alter-state! current (->NotStartedState state)))    ;; (!) if a state does not have :stop when _should_ this might leak
-    (swap! running dissoc state)
-    (update-meta! [state :status] #{:stopped})))
+  (go
+    (when (some status #{:started})
+      (if stop
+        (if-let [cause (-> (on-error (str "could not stop [" state "] due to")
+                                     (<! (record! state stop done))
+                                     :fail? false)
+                           :f-failed)]
+          (log cause :error) ;; this would mostly be useful in REPL / browser console
+          (alter-state! current (->NotStartedState state)))
+        (alter-state! current (->NotStartedState state))) ;; (!) if a state does not have :stop when _should_ this might leak
+      (swap! running dissoc state)
+      (update-meta! [state :status] #{:stopped}))))
 
 (defn running-states []
   (set (keys @running)))
@@ -237,15 +249,19 @@
         (swap! meta-state dissoc state))))
 
 (defn- bring [states fun order]
-  (let [done (atom [])]
-    (as-> states $
-          (map var-to-str $)
-          #?(:clj                          ;; needs more thking in cljs, since based on sym resolve
-              (remove cleanup-deleted $))
-          (select-keys @meta-state $)
-          (sort-by (comp :order val) order $)
-          (doseq [[k v] $] (fun k v done)))
-    @done))
+  (go
+
+    (let [done (atom [])]
+      (as-> states $
+        (map var-to-str $)
+        #?(:clj ;; needs more thking in cljs, since based on sym resolve
+           (remove cleanup-deleted $))
+        (select-keys @meta-state $)
+        (sort-by (comp :order val) order $)
+        (doseq [[k v] $]
+          ;; don't start the next component until you have a result
+          (<! (fun k v done))))
+      @done)))
 
 (defn- merge-lifecycles
   "merges with overriding _certain_ non existing keys.
@@ -279,27 +295,29 @@
   (remove (comp :sub? @meta-state) (find-all-states)))
 
 (defn start [& states]
-  (let [fs (-> states first)]
-    (if (coll? fs)
-      (if-not (empty? fs)                      ;; (mount/start) vs. (mount/start #{}) vs. (mount/start #{1 2 3})
-        (apply start fs)
-        {:started #{}})
-      (let [states (or (seq states)
-                       (all-without-subs))]
-        {:started (bring states up <)}))))
+  (go
+    (let [fs (-> states first)]
+      (if (coll? fs)
+        (if-not (empty? fs) ;; (mount/start) vs. (mount/start #{}) vs. (mount/start #{1 2 3})
+          (apply start fs)
+          {:started #{}})
+        (let [states (or (seq states)
+                         (all-without-subs))]
+          {:started (<! (bring states up <))})))))
 
 (defn stop [& states]
-  (let [fs (-> states first)]
-    (if (coll? fs)
-      (if-not (empty? fs)                      ;; (mount/stop) vs. (mount/stop #{}) vs. (mount/stop #{1 2 3})
-        (apply stop fs)
-        {:stopped #{}})
-      (let [states (or (seq states)
-                       (find-all-states))
-            _ (dorun (map unsub states))       ;; unmark substitutions marked by "start-with" / "swap-states"
-            stopped (bring states down >)]
-        (dorun (map rollback! states))         ;; restore to origin from "start-with" / "swap-states"
-        {:stopped stopped}))))
+  (go
+    (let [fs (-> states first)]
+      (if (coll? fs)
+        (if-not (empty? fs) ;; (mount/stop) vs. (mount/stop #{}) vs. (mount/stop #{1 2 3})
+          (apply stop fs)
+          {:stopped #{}})
+        (let [states (or (seq states)
+                         (find-all-states))
+              _ (dorun (map unsub states)) ;; unmark substitutions marked by "start-with" / "swap-states"
+              stopped (<! (bring states down >))]
+          (dorun (map rollback! states)) ;; restore to origin from "start-with" / "swap-states"
+          {:stopped stopped})))))
 
 ;; composable set of states
 
