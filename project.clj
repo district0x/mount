@@ -6,7 +6,7 @@
 
   :source-paths ["src"]
 
-  :dependencies [] ;; for visual clarity
+  :dependencies [[fullcontact/full.async "1.1.0"]] ;; for visual clarity
 
   :tach {:test-runner-ns 'mount.test-self-host
          :source-paths ["test/core"]}
@@ -25,8 +25,7 @@
                                   [robert/hooke "1.3.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
                                   [org.clojure/tools.nrepl "0.2.11"]
-                                  [com.datomic/datomic-free "0.9.5327" :exclusions [joda-time com.google.guava/guava]]
-                                  [org.clojure/core.async "1.2.603"]]
+                                  [com.datomic/datomic-free "0.9.5327" :exclusions [joda-time com.google.guava/guava]]]
 
                    :plugins [[lein-cljsbuild "1.1.8"]
                              [lein-doo "0.1.6"]
@@ -40,40 +39,40 @@
                                                      [:cljsbuild :builds :dev :compiler :output-dir]
                                                      [:cljsbuild :builds :prod :compiler :output-to]]
                    :cljsbuild {
-                    :builds {:dev
-                             {:source-paths ["src" "dev/cljs"]
-                              :figwheel true
+                               :builds {:dev
+                                        {:source-paths ["src" "dev/cljs"]
+                                         :figwheel true
 
-                              :compiler {:main app.example
-                                         :asset-path "js/compiled/out"
-                                         :output-to "dev/resources/public/js/compiled/mount.js"
-                                         :output-dir "dev/resources/public/js/compiled/out"
-                                         :optimizations :none
-                                         :source-map true
-                                         :source-map-timestamp true}}
-                            :test
-                             {:source-paths ["src" "dev/cljs" "test"]
-                              :compiler {:main mount.test
-                                         ;; :asset-path "js/compiled/out"
-                                         :output-to "dev/resources/public/js/compiled/mount.js"
-                                         :output-dir "dev/resources/public/js/compiled/test"
-                                         :optimizations :none
-                                         :source-map true
-                                         :source-map-timestamp true}}
-                             :async-test
-                             {:source-paths ["src" "test/cljs"]
-                              :compiler {:main async.app
-                                         ;; :asset-path "js/compiled/out"
-                                         :output-to "dev/resources/public/js/compiled/async-test.js"
-                                         :output-dir "dev/resources/public/js/compiled/async-test"
-                                         :optimizations :none
-                                         :source-map true
-                                         :target :nodejs
-                                         :source-map-timestamp true}}
-                             :prod
-                             {:source-paths ["src" "dev/cljs"]
-                              :compiler {:output-to "dev/resources/public/js/compiled/mount.js"
-                                         :optimizations :advanced
-                                         :pretty-print false}}}}}
+                                         :compiler {:main app.example
+                                                    :asset-path "js/compiled/out"
+                                                    :output-to "dev/resources/public/js/compiled/mount.js"
+                                                    :output-dir "dev/resources/public/js/compiled/out"
+                                                    :optimizations :none
+                                                    :source-map true
+                                                    :source-map-timestamp true}}
+                                        :test
+                                        {:source-paths ["src" "dev/cljs" "test"]
+                                         :compiler {:main mount.test
+                                                    ;; :asset-path "js/compiled/out"
+                                                    :output-to "dev/resources/public/js/compiled/mount.js"
+                                                    :output-dir "dev/resources/public/js/compiled/test"
+                                                    :optimizations :none
+                                                    :source-map true
+                                                    :source-map-timestamp true}}
+                                        :async-test
+                                        {:source-paths ["src" "test/cljs"]
+                                         :compiler {:main async.app
+                                                    ;; :asset-path "js/compiled/out"
+                                                    :output-to "dev/resources/public/js/compiled/async-test.js"
+                                                    :output-dir "dev/resources/public/js/compiled/async-test"
+                                                    :optimizations :none
+                                                    :source-map true
+                                                    :target :nodejs
+                                                    :source-map-timestamp true}}
+                                        :prod
+                                        {:source-paths ["src" "dev/cljs"]
+                                         :compiler {:output-to "dev/resources/public/js/compiled/mount.js"
+                                                    :optimizations :advanced
+                                                    :pretty-print false}}}}}
 
              :test {:source-paths ["test/core" "test/clj" "test/cljs"]}})

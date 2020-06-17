@@ -3,11 +3,17 @@
             [async.b]
             [async.c]
             [async.d]
-            [clojure.core.async :refer [<! chan go timeout]]
+            [full.async :refer [<? go-try]]
+            [clojure.core.async :refer [<! timeout]]
             [mount.core :as mount]))
 
-(go
-  (<! (mount/start))
-  (<! (timeout 1000))
-  (js/console.log "\n\n Stopping all components! \n\n")
-  (mount/stop))
+(go-try
+
+ (try
+   (<? (mount/start))
+   (catch js/Error e
+     (js/console.error e)))
+
+ (<? (timeout 1000))
+ (js/console.log "\n\n Stopping all components! \n\n")
+ (mount/stop))

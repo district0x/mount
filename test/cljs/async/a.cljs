@@ -1,12 +1,13 @@
 (ns async.a
   (:require [mount.core :as mount]
-            [clojure.core.async :refer [<! chan go timeout]])
+            [full.async :refer [<? go-try]]
+            [clojure.core.async :refer [timeout]])
   (:require-macros [mount.core :refer [defstate]]))
 
 (defstate a
-  :start (go
+  :start (go-try
            (js/console.log "Starting state A")
-           (<! (timeout 2000))
+           (<? (timeout 2000))
            (js/console.log "State A started.")
            0)
   :stop (do
