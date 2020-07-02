@@ -1,4 +1,4 @@
-(defproject mount "0.1.17-SNAPSHOT"
+(defproject district0x/mount "0.1.17-SNAPSHOT"
   :description "managing Clojure and ClojureScript app state since (reset)"
   :url "https://github.com/tolitius/mount"
   :license {:name "Eclipse Public License"
@@ -38,6 +38,20 @@
                    :clean-targets ^{:protect false} [:target-path
                                                      [:cljsbuild :builds :dev :compiler :output-dir]
                                                      [:cljsbuild :builds :prod :compiler :output-to]]
+
+                   :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
+                                                       :username :env/clojars_username
+                                                       :password :env/clojars_password
+                                                       :sign-releases false}]
+                                         ["releases"  {:url "https://clojars.org/repo"
+                                                       :username :env/clojars_username
+                                                       :password :env/clojars_password
+                                                       :sign-releases false}]]
+
+                   :release-tasks [["vcs" "assert-committed"]
+                                   ["change" "version" "leiningen.release/bump-version" "release"]
+                                   ["deploy"]]
+
                    :cljsbuild {
                                :builds {:dev
                                         {:source-paths ["src" "dev/cljs"]
@@ -56,6 +70,7 @@
                                                     ;; :asset-path "js/compiled/out"
                                                     :output-to "dev/resources/public/js/compiled/mount.js"
                                                     :output-dir "dev/resources/public/js/compiled/test"
+                                                    :target :nodejs
                                                     :optimizations :none
                                                     :source-map true
                                                     :source-map-timestamp true}}
