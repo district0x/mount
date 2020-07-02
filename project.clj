@@ -1,4 +1,4 @@
-(defproject district0x/mount "0.1.17-SNAPSHOT"
+(defproject district0x/mount "0.1.17"
   :description "managing Clojure and ClojureScript app state since (reset)"
   :url "https://github.com/tolitius/mount"
   :license {:name "Eclipse Public License"
@@ -41,11 +41,11 @@
 
                    :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
                                                        :username :env/clojars_username
-                                                       :password :env/clojars_password
+                                                       :password :env/clojars_token
                                                        :sign-releases false}]
                                          ["releases"  {:url "https://clojars.org/repo"
                                                        :username :env/clojars_username
-                                                       :password :env/clojars_password
+                                                       :password :env/clojars_token
                                                        :sign-releases false}]]
 
                    :release-tasks [["vcs" "assert-committed"]
