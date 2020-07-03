@@ -77,15 +77,13 @@
   (swap! meta-state assoc-in path v))
 
 (defn- record! [state-name f done]
-  ;; NOTE: f here is the start/stop state functions
-  ;; which can return a value or a promise-chan
   (go-try
-    (let [state (let [res (f)]
-                  (if (satisfies? async-protos/ReadPort res)
-                    (<? res)
-                    res))]
-      (swap! done conj state-name)
-      state)))
+   (let [state (let [res (f)]
+                 (if (satisfies? async-protos/ReadPort res)
+                   (<? res)
+                   res))]
+     (swap! done conj state-name)
+     state)))
 
 (defn- up [state {:keys [start stop status] :as current} done]
   (go-try
