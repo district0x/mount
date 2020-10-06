@@ -10,13 +10,13 @@
                     [clojure.core.async.impl.protocols :as async-protos])
      :cljs (:require [mount.tools.macro]
                      [clojure.set :refer [intersection]]
-                     [full.async :refer [<? go-try]]
                      [clojure.core.async :refer [<!]]
                      [mount.tools.logger :refer [log]]
                      [cljs.core.async.impl.protocols :as async-protos]))
   #?(:cljs (:require-macros [mount.core]
                             [mount.tools.macro :refer [on-error throw-runtime]]
-                            [mount.tools.macrovich :refer [deftime]])))
+                            [mount.tools.macrovich :refer [deftime]]
+                            [full.async :refer [<? go-try]])))
 
 (defonce ^:private -args (atom {}))                        ;; mostly for command line args and external files
 (defonce ^:private state-seq (atom 0))
